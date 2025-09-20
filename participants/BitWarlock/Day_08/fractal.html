@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e6e6e6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #4cc9f0, #4361ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1000px;
+            background: rgba(30, 30, 46, 0.8);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        canvas {
+            display: block;
+            background: #0c0c15;
+            width: 100%;
+            height: 100%;
+        }
+
+        .loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(12, 12, 21, 0.9);
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading.visible {
+            opacity: 1;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: #4361ee;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        .loading-text {
+            margin-left: 15px;
+            font-size: 1.1rem;
+            color: #4cc9f0;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .controls {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .control-group {
+            background: rgba(40, 40, 60, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #4cc9f0;
+        }
+
+        .fractal-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .fractal-btn {
+            padding: 8px 15px;
+            background: rgba(60, 60, 90, 0.5);
+            border: none;
+            border-radius: 20px;
+            color: #e6e6e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .fractal-btn:hover {
+            background: rgba(80, 80, 120, 0.5);
+        }
+
+        .fractal-btn.active {
+            background: linear-gradient(45deg, #4361ee, #4cc9f0);
+            color: white;
+        }
+
+        .slider-container {
+            margin-bottom: 15px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #1a1a2e, #4361ee);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4cc9f0;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+        }
+
+        .color-palettes {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .palette-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .palette-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .palette-btn.active {
+            border-color: white;
+            transform: scale(1.15);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background: rgba(60, 60, 90, 0.5);
+            border: none;
+            border-radius: 5px;
+            color: #e6e6e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: rgba(80, 80, 120, 0.5);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4361ee, #4cc9f0);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #4cc9f0, #4361ee);
+            box-shadow: 0 0 15px rgba(76, 201, 240, 0.5);
+        }
+
+        .keyboard-controls {
+            background: rgba(40, 40, 60, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .keyboard-controls h3 {
+            color: #4cc9f0;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .keyboard-controls p {
+            margin: 4px 0;
+        }
+
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .instructions {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Fractal Explorer</h1>
+        <p class="subtitle">Explore the infinite complexity of mathematical fractals</p>
+    </header>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="fractalCanvas"></canvas>
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <div class="loading-text">Rendering fractal...</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <h2>Fractal Type</h2>
+                <div class="fractal-selector">
+                    <button class="fractal-btn active" data-fractal="mandelbrot">Mandelbrot</button>
+                    <button class="fractal-btn" data-fractal="julia">Julia</button>
+                    <button class="fractal-btn" data-fractal="burningShip">Burning Ship</button>
+                    <button class="fractal-btn" data-fractal="sierpinski">Sierpinski</button>
+                    <button class="fractal-btn" data-fractal="multibrot">Multibrot</button>
+                </div>
+
+                <h2>Color Palette</h2>
+                <div class="color-palettes">
+                    <button class="palette-btn active" data-palette="ocean" style="background: linear-gradient(45deg, #1a1a2e, #16213e, #0f3460, #4cc9f0);"></button>
+                    <button class="palette-btn" data-palette="sunset" style="background: linear-gradient(45deg, #1a1a2e, #3a0ca3, #7209b7, #f72585);"></button>
+                    <button class="palette-btn" data-palette="forest" style="background: linear-gradient(45deg, #1a1a2e, #2d6a4f, #40916c, #52b788);"></button>
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Max Iterations:</span>
+                        <span id="maxIterationsValue">100</span>
+                    </div>
+                    <input type="range" id="maxIterations" min="50" max="500" value="100">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Render Quality:</span>
+                        <span id="qualityValue">Medium</span>
+                    </div>
+                    <input type="range" id="quality" min="1" max="3" value="2" step="1">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h2>Fractal Parameters</h2>
+                <div id="juliaParams">
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Real Part:</span>
+                            <span id="cRealValue">-0.7</span>
+                        </div>
+                        <input type="range" id="cReal" min="-1" max="1" step="0.01" value="-0.7">
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Imaginary Part:</span>
+                            <span id="cImagValue">0.27</span>
+                        </div>
+                        <input type="range" id="cImag" min="-1" max="1" step="0.01" value="0.27">
+                    </div>
+                </div>
+
+                <div id="multibrotParams">
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Power:</span>
+                            <span id="powerValue">3</span>
+                        </div>
+                        <input type="range" id="power" min="2" max="6" step="1" value="3">
+                    </div>
+                </div>
+
+                <div id="sierpinskiParams">
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Depth:</span>
+                            <span id="depthValue">5</span>
+                        </div>
+                        <input type="range" id="depth" min="1" max="8" step="1" value="5">
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="resetView" class="btn-primary">Reset View</button>
+                    <button id="renderBtn" class="btn-primary">Render</button>
+                </div>
+
+                <div class="keyboard-controls">
+                    <h3>Keyboard Controls</h3>
+                    <p><strong>+ / -</strong> : Zoom in / out</p>
+                    <p><strong>Arrow Keys</strong> : Move around</p>
+                    <p><strong>R</strong> : Reset view</p>
+                    <p><strong>Space</strong> : Re-render</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Fractal Explorer &copy; 2025</p>
+    </footer>
+
+    <script>
+        // Canvas and context setup
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        // State variables
+        let currentFractal = 'mandelbrot';
+        let currentPalette = 'ocean';
+        let maxIterations = 100;
+        let cReal = -0.7;
+        let cImag = 0.27;
+        let power = 3;
+        let depth = 5;
+        let quality = 2;
+        let isRendering = false;
+        
+        // View state for each fractal
+        const viewStates = {
+            mandelbrot: { centerX: -0.5, centerY: 0, scale: 2.5 },
+            julia: { centerX: 0, centerY: 0, scale: 3 },
+            burningShip: { centerX: -0.5, centerY: -0.5, scale: 2.8 },
+            sierpinski: { centerX: 0, centerY: 0, scale: 2 },
+            multibrot: { centerX: 0, centerY: 0, scale: 2.5 }
+        };
+        
+        let centerX = viewStates.mandelbrot.centerX;
+        let centerY = viewStates.mandelbrot.centerY;
+        let scale = viewStates.mandelbrot.scale;
+        
+        // Color palettes
+        const palettes = {
+            ocean: [
+                { r: 26, g: 26, b: 46 },   // Deep blue
+                { r: 22, g: 33, b: 62 },   // Dark blue
+                { r: 15, g: 52, b: 96 },   // Medium blue
+                { r: 76, g: 201, b: 240 }  // Light blue
+            ],
+            sunset: [
+                { r: 26, g: 26, b: 46 },   // Deep blue
+                { r: 58, g: 12, b: 163 },  // Purple
+                { r: 114, g: 9, b: 183 },  // Magenta
+                { r: 247, g: 37, b: 133 }  // Pink
+            ],
+            forest: [
+                { r: 26, g: 26, b: 46 },   // Deep blue
+                { r: 45, g: 106, b: 79 },  // Dark green
+                { r: 64, g: 145, b: 108 }, // Medium green
+                { r: 82, g: 183, b: 136 }  // Light green
+            ]
+        };
+
+        // Initialize canvas size
+        function initCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        // Show loading indicator
+        function showLoading() {
+            loadingIndicator.classList.add('visible');
+        }
+
+        // Hide loading indicator
+        function hideLoading() {
+            loadingIndicator.classList.remove('visible');
+        }
+
+        // Get color for iteration count
+        function getColor(iterations, maxIterations) {
+            if (iterations === maxIterations) {
+                return { r: 0, g: 0, b: 0 };
+            }
+            
+            const t = iterations / maxIterations;
+            const palette = palettes[currentPalette];
+            
+            // Get the segment of the gradient
+            const segment = Math.min(Math.floor(t * (palette.length - 1)), palette.length - 2);
+            const segmentT = (t * (palette.length - 1)) - segment;
+            
+            // Interpolate between colors in the palette
+            const r = Math.floor(palette[segment].r + segmentT * (palette[segment + 1].r - palette[segment].r));
+            const g = Math.floor(palette[segment].g + segmentT * (palette[segment + 1].g - palette[segment].g));
+            const b = Math.floor(palette[segment].b + segmentT * (palette[segment + 1].b - palette[segment].b));
+            
+            return { r, g, b };
+        }
+
+        // Mandelbrot set calculation
+        function mandelbrot(x, y) {
+            let zx = 0;
+            let zy = 0;
+            let zx2 = 0;
+            let zy2 = 0;
+            let iterations = 0;
+            
+            while (zx2 + zy2 <= 4 && iterations < maxIterations) {
+                zy = 2 * zx * zy + y;
+                zx = zx2 - zy2 + x;
+                zx2 = zx * zx;
+                zy2 = zy * zy;
+                iterations++;
+            }
+            
+            return iterations;
+        }
+
+        // Julia set calculation
+        function julia(x, y) {
+            let zx = x;
+            let zy = y;
+            let zx2 = zx * zx;
+            let zy2 = zy * zy;
+            let iterations = 0;
+            
+            while (zx2 + zy2 <= 4 && iterations < maxIterations) {
+                zy = 2 * zx * zy + cImag;
+                zx = zx2 - zy2 + cReal;
+                zx2 = zx * zx;
+                zy2 = zy * zy;
+                iterations++;
+            }
+            
+            return iterations;
+        }
+
+        // Burning Ship fractal calculation
+        function burningShip(x, y) {
+            let zx = 0;
+            let zy = 0;
+            let zx2 = 0;
+            let zy2 = 0;
+            let iterations = 0;
+            
+            while (zx2 + zy2 <= 4 && iterations < maxIterations) {
+                zx = Math.abs(zx);
+                zy = Math.abs(zy);
+                zx2 = zx * zx;
+                zy2 = zy * zy;
+                
+                const temp = zx2 - zy2 + x;
+                zy = 2 * zx * zy + y;
+                zx = temp;
+                
+                zx2 = zx * zx;
+                zy2 = zy * zy;
+                iterations++;
+            }
+            
+            return iterations;
+        }
+
+        // Draw Sierpinski triangle recursively
+        function drawSierpinski(x1, y1, x2, y2, x3, y3, depth) {
+            if (depth === 0) {
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.lineTo(x3, y3);
+                ctx.closePath();
+                ctx.fill();
+                return;
+            }
+            
+            const x12 = (x1 + x2) / 2;
+            const y12 = (y1 + y2) / 2;
+            const x13 = (x1 + x3) / 2;
+            const y13 = (y1 + y3) / 2;
+            const x23 = (x2 + x3) / 2;
+            const y23 = (y2 + y3) / 2;
+            
+            drawSierpinski(x1, y1, x12, y12, x13, y13, depth - 1);
+            drawSierpinski(x12, y12, x2, y2, x23, y23, depth - 1);
+            drawSierpinski(x13, y13, x23, y23, x3, y3, depth - 1);
+        }
+
+        // Multibrot set calculation
+        function multibrot(x, y) {
+            let zx = 0;
+            let zy = 0;
+            let iterations = 0;
+            
+            while (zx * zx + zy * zy <= 4 && iterations < maxIterations) {
+                // Convert to polar coordinates
+                const r = Math.sqrt(zx * zx + zy * zy);
+                let theta = Math.atan2(zy, zx);
+                
+                // Apply power transformation
+                const newR = Math.pow(r, power);
+                theta *= power;
+                
+                // Convert back to Cartesian coordinates
+                zx = newR * Math.cos(theta) + x;
+                zy = newR * Math.sin(theta) + y;
+                
+                iterations++;
+            }
+            
+            return iterations;
+        }
+
+        // Render the fractal
+        function renderFractal() {
+            if (isRendering) return;
+            isRendering = true;
+            showLoading();
+            
+            // Use requestAnimationFrame for non-blocking rendering
+            requestAnimationFrame(() => {
+                const width = canvas.width;
+                const height = canvas.height;
+                const aspectRatio = width / height;
+                
+                // Adjust for aspect ratio
+                const xMin = centerX - scale * aspectRatio / 2;
+                const xMax = centerX + scale * aspectRatio / 2;
+                const yMin = centerY - scale / 2;
+                const yMax = centerY + scale / 2;
+                
+                const pixelSize = Math.max(1, quality); // Lower quality = faster rendering
+                
+                if (currentFractal === 'sierpinski') {
+                    // Clear canvas
+                    ctx.clearRect(0, 0, width, height);
+                    
+                    // Set fill style
+                    ctx.fillStyle = '#4cc9f0';
+                    
+                    // Draw Sierpinski triangle
+                    const size = Math.min(width, height) * 0.8 * scale / 2;
+                    const x1 = width / 2;
+                    const y1 = (height - size) / 2;
+                    const x2 = x1 - size / 2;
+                    const y2 = y1 + size;
+                    const x3 = x1 + size / 2;
+                    const y3 = y1 + size;
+                    
+                    drawSierpinski(x1, y1, x2, y2, x3, y3, depth);
+                } else {
+                    // Create image data for direct pixel manipulation
+                    const imageData = ctx.createImageData(width, height);
+                    const data = imageData.data;
+                    
+                    // Render the fractal pixel by pixel
+                    for (let y = 0; y < height; y += pixelSize) {
+                        for (let x = 0; x < width; x += pixelSize) {
+                            // Convert pixel coordinates to complex plane coordinates
+                            const cx = xMin + (x / width) * (xMax - xMin);
+                            const cy = yMin + (y / height) * (yMax - yMin);
+                            
+                            let iterations;
+                            
+                            switch (currentFractal) {
+                                case 'mandelbrot':
+                                    iterations = mandelbrot(cx, cy);
+                                    break;
+                                case 'julia':
+                                    iterations = julia(cx, cy);
+                                    break;
+                                case 'burningShip':
+                                    iterations = burningShip(cx, cy);
+                                    break;
+                                case 'multibrot':
+                                    iterations = multibrot(cx, cy);
+                                    break;
+                                default:
+                                    iterations = mandelbrot(cx, cy);
+                            }
+                            
+                            // Get color based on iterations
+                            const color = getColor(iterations, maxIterations);
+                            
+                            // Draw pixel (or block for lower quality)
+                            for (let dy = 0; dy < pixelSize && y + dy < height; dy++) {
+                                for (let dx = 0; dx < pixelSize && x + dx < width; dx++) {
+                                    const idx = 4 * ((y + dy) * width + (x + dx));
+                                    data[idx] = color.r;
+                                    data[idx + 1] = color.g;
+                                    data[idx + 2] = color.b;
+                                    data[idx + 3] = 255;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Put the image data to the canvas
+                    ctx.putImageData(imageData, 0, 0);
+                }
+                
+                isRendering = false;
+                hideLoading();
+            });
+        }
+
+        // Handle keyboard input
+        function handleKeyDown(e) {
+            const aspectRatio = canvas.width / canvas.height;
+            const moveAmount = scale * 0.1; // Movement step size
+            const zoomFactor = 0.8; // Zoom step size
+            
+            switch(e.key) {
+                case '+':
+                case '=':
+                    e.preventDefault();
+                    scale *= zoomFactor;
+                    renderFractal();
+                    break;
+                    
+                case '-':
+                case '_':
+                    e.preventDefault();
+                    scale *= (1 / zoomFactor);
+                    renderFractal();
+                    break;
+                    
+                case 'ArrowUp':
+                    e.preventDefault();
+                    centerY -= moveAmount;
+                    renderFractal();
+                    break;
+                    
+                case 'ArrowDown':
+                    e.preventDefault();
+                    centerY += moveAmount;
+                    renderFractal();
+                    break;
+                    
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    centerX -= moveAmount * aspectRatio;
+                    renderFractal();
+                    break;
+                    
+                case 'ArrowRight':
+                    e.preventDefault();
+                    centerX += moveAmount * aspectRatio;
+                    renderFractal();
+                    break;
+                    
+                case 'r':
+                case 'R':
+                    e.preventDefault();
+                    resetView();
+                    break;
+                    
+                case ' ':
+                    e.preventDefault();
+                    renderFractal();
+                    break;
+            }
+        }
+
+        // Reset view to default
+        function resetView() {
+            const state = viewStates[currentFractal];
+            centerX = state.centerX;
+            centerY = state.centerY;
+            scale = state.scale;
+            renderFractal();
+        }
+
+        // Update UI based on selected fractal
+        function updateUI() {
+            // Update active fractal button
+            document.querySelectorAll('.fractal-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.fractal === currentFractal);
+            });
+            
+            // Show/hide relevant parameters
+            document.getElementById('juliaParams').style.display = 
+                currentFractal === 'julia' ? 'block' : 'none';
+            document.getElementById('multibrotParams').style.display = 
+                currentFractal === 'multibrot' ? 'block' : 'none';
+            document.getElementById('sierpinskiParams').style.display = 
+                currentFractal === 'sierpinski' ? 'block' : 'none';
+        }
+
+        // Initialize the application
+        function init() {
+            initCanvas();
+            window.addEventListener('resize', () => {
+                initCanvas();
+                renderFractal();
+            });
+            
+            // Set up keyboard event listener
+            document.addEventListener('keydown', handleKeyDown);
+            
+            // Fractal type buttons
+            document.querySelectorAll('.fractal-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentFractal = btn.dataset.fractal;
+                    const state = viewStates[currentFractal];
+                    centerX = state.centerX;
+                    centerY = state.centerY;
+                    scale = state.scale;
+                    updateUI();
+                    renderFractal();
+                });
+            });
+            
+            // Color palette buttons
+            document.querySelectorAll('.palette-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentPalette = btn.dataset.palette;
+                    document.querySelectorAll('.palette-btn').forEach(b => {
+                        b.classList.toggle('active', b === btn);
+                    });
+                    renderFractal();
+                });
+            });
+            
+            // Sliders
+            document.getElementById('maxIterations').addEventListener('input', (e) => {
+                maxIterations = parseInt(e.target.value);
+                document.getElementById('maxIterationsValue').textContent = maxIterations;
+                renderFractal();
+            });
+            
+            document.getElementById('cReal').addEventListener('input', (e) => {
+                cReal = parseFloat(e.target.value);
+                document.getElementById('cRealValue').textContent = cReal.toFixed(2);
+                renderFractal();
+            });
+            
+            document.getElementById('cImag').addEventListener('input', (e) => {
+                cImag = parseFloat(e.target.value);
+                document.getElementById('cImagValue').textContent = cImag.toFixed(2);
+                renderFractal();
+            });
+            
+            document.getElementById('power').addEventListener('input', (e) => {
+                power = parseInt(e.target.value);
+                document.getElementById('powerValue').textContent = power;
+                renderFractal();
+            });
+            
+            document.getElementById('depth').addEventListener('input', (e) => {
+                depth = parseInt(e.target.value);
+                document.getElementById('depthValue').textContent = depth;
+                renderFractal();
+            });
+            
+            document.getElementById('quality').addEventListener('input', (e) => {
+                quality = parseInt(e.target.value);
+                const qualityNames = ['High', 'Medium', 'Low'];
+                document.getElementById('qualityValue').textContent = qualityNames[quality - 1];
+                renderFractal();
+            });
+            
+            // Action buttons
+            document.getElementById('resetView').addEventListener('click', resetView);
+            document.getElementById('renderBtn').addEventListener('click', renderFractal);
+            
+            // Initial UI update and render
+            updateUI();
+            renderFractal();
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
